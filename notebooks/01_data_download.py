@@ -19,3 +19,4 @@ df.columns = list(tickers.keys())
 df.to_csv("data/close_prices.csv", encoding="utf-8-sig")
 print("✅ Saved: data/close_prices.csv")
 print(df.tail())
+
