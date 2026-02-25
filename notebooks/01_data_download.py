@@ -9,7 +9,7 @@ tickers = {
 }
 
 start_date = "2015-01-01"
-end_date = "2024-12-31"
+end_date = "2026-01-31"
 
 # Download (Close)
 df = yf.download(list(tickers.values()), start=start_date, end=end_date)["Close"]

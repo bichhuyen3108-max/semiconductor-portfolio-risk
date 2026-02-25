@@ -5,6 +5,6 @@ TICKERS = {
 }
 
 START_DATE = "2016-01-01"
-END_DATE = "2026-01-01"   # to include full 2025
+END_DATE = "2026-01-31"   
 CONF_LEVELS = [0.95, 0.99]
 TRADING_DAYS = 252

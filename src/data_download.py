@@ -18,4 +18,4 @@ if __name__ == "__main__":
     os.makedirs("data/raw", exist_ok=True)
     adj = download_adj_close()
     adj.to_csv("data/raw/adj_close.csv")
-    print("Saved: data/raw/adj_close.csv", adj.shape)    
+    print("Saved: data/raw/adj_close.csv", adj.shape)   
