@@ -2,6 +2,9 @@ import os
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MultipleLocator
+import matplotlib.ticker as mtick
+
 
 
 def plot_var_cvar_multi_levels(
@@ -132,7 +135,7 @@ def plot_return_vs_rolling_var(
 ):
     """
     (KR) 포트폴리오 수익률 시계열 + 이동 VaR 오버레이 + 위반(빨간 점) 표시
-    (VN) Vẽ time series return + đường rolling VaR + đánh dấu violation (chấm đỏ)
+    
 
     level: 95 또는 99
     """
@@ -168,6 +171,14 @@ def plot_return_vs_rolling_var(
         s=18
     )
 
+    # Y축을 더 촘촘하게 + % 표시
+    ax = plt.gca()
+    ax.yaxis.set_major_locator(MultipleLocator(0.02))   # 2% 단위
+    ax.yaxis.set_minor_locator(MultipleLocator(0.005))  # 0.5% 단위
+    ax.yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
+    ax.grid(True, which="major", axis="y", alpha=0.3)
+    ax.grid(True, which="minor", axis="y", alpha=0.15)
+
     plt.title(f"Portfolio Return vs Rolling VaR ({level}%) with Violations")
     plt.xlabel("Date")
     plt.ylabel("Daily Log Return")
@@ -187,6 +198,64 @@ def plot_return_vs_rolling_var(
         plt.close()
 
 
+def calc_yearly_violation_rate_from_rolling_var(
+    df: pd.DataFrame,
+    level: int = 95,
+    date_col: str = "Date",
+    ret_col: str = "Portfolio_Return",
+) -> pd.DataFrame:
+    """
+    (KR) Rolling VaR 결과를 이용해 연도별 Violation Rate(위반율)을 계산합니다.
+
+    ✅ 필요한 컬럼:
+    - Date (날짜)
+    - Portfolio_Return (일간 수익률)
+    - Rolling_VaR_{level} (예: Rolling_VaR_95 / Rolling_VaR_99)
+
+    ✅ Violation 정의:
+    - 일간 수익률 < Rolling VaR  => Violation = 1
+    - 그 외 => 0
+    """
+    if level not in (95, 99):
+        raise ValueError("level은 95 또는 99만 가능합니다.")
+
+    var_col = f"Rolling_VaR_{level}"
+    if var_col not in df.columns:
+        raise ValueError(f"df에 필요한 컬럼이 없습니다: {var_col}")
+    if ret_col not in df.columns:
+        raise ValueError(f"df에 필요한 컬럼이 없습니다: {ret_col}")
+    if date_col not in df.columns:
+        raise ValueError(f"df에 필요한 컬럼이 없습니다: {date_col}")
+
+    out = df.copy()
+
+    # 날짜 형식 변환
+    out[date_col] = pd.to_datetime(out[date_col], errors="coerce")
+    out = out.dropna(subset=[date_col, ret_col, var_col])
+
+    # (KR) Violation 컬럼 생성: 수익률이 VaR보다 더 낮으면 1
+    vio_col = f"Violation_{level}"
+    out[vio_col] = (out[ret_col] < out[var_col]).astype(int)
+
+    # 연도 추출
+    out["Year"] = out[date_col].dt.year
+
+    # 연도별 위반 횟수 / 총 관측치 / 위반율 계산
+    yearly = (
+        out.groupby("Year")[vio_col]
+           .agg(violations="sum", total_days="count")
+           .reset_index()
+    )
+    yearly["violation_rate"] = yearly["violations"] / yearly["total_days"]
+
+    # 이론적 기대 위반율 (95%->5%, 99%->1%)
+    expected_rate = 0.05 if level == 95 else 0.01
+    yearly["expected_rate"] = expected_rate
+    yearly["violation_rate_pct"] = yearly["violation_rate"] * 100
+
+    return yearly        
+
+
 def run_rolling_var_plots():
     """
     (KR) 전체 실행: 데이터 로드 -> 위반 생성 -> 95%, 99% 그래프 저장/표시
@@ -194,6 +263,27 @@ def run_rolling_var_plots():
     df = load_portfolio_and_rolling_var()
     df = add_violations(df)
 
+    # ===============================
+    # (KR) 연도별 위반율(Yearly Violation Rate) 계산 + 출력/저장
+    # ===============================
+    yearly_95 = calc_yearly_violation_rate_from_rolling_var(df, level=95)
+    yearly_99 = calc_yearly_violation_rate_from_rolling_var(df, level=99)
+
+    print("\n[INFO] 연도별 VaR 95% 위반율")
+    print(yearly_95.to_string(index=False))
+
+    print("\n[INFO] 연도별 VaR 99% 위반율")
+    print(yearly_99.to_string(index=False))
+
+    # (KR) CSV로 저장 (results/tables 폴더에 저장)
+    os.makedirs("results/tables", exist_ok=True)
+    yearly_95.to_csv("results/tables/yearly_violation_rate_95.csv", index=False, encoding="utf-8-sig")
+    yearly_99.to_csv("results/tables/yearly_violation_rate_99.csv", index=False, encoding="utf-8-sig")
+    print("[INFO] Saved yearly violation rate tables to results/tables/")
+
+    # ===============================
+    # (KR) 그래프 출력/저장
+    # ===============================
     plot_return_vs_rolling_var(
         df,
         level=95,
