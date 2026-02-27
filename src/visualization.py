@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator
 import matplotlib.ticker as mtick
+from src.risk_metrics import run_var_backtest_kupiec
 
 
 
@@ -297,3 +298,19 @@ def run_rolling_var_plots():
         save_path="results/figures/rolling_var_violation_99.png",
         show=True,
     )
+
+
+def run_backtesting_post3():
+    df = load_portfolio_and_rolling_var()
+    df = add_violations(df)
+
+    res95 = run_var_backtest_kupiec(df, level=95)
+    res99 = run_var_backtest_kupiec(df, level=99)
+
+    print("\n[POST3] Kupiec POF Test 결과")
+    for r in (res95, res99):
+        print(
+            f"- VaR {r['level']}% | expected={r['expected_rate']:.2%}, "
+            f"actual={r['violation_rate']:.2%} ({r['violations']}/{r['n']}), "
+            f"p-value={r['p_value']:.4f} => {r['verdict']}"
+        )

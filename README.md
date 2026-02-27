@@ -1,52 +1,147 @@
-# 🇰🇷 한국 반도체 포트폴리오 시장위험 분석 (Rolling VaR 기반)
+한국 반도체 포트폴리오 시장위험 정량 분석
+Rolling VaR 및 백테스팅 기반 리스크 평가
+1. 프로젝트 개요
 
-## 1. 프로젝트 개요
-- **목표**: 한국 반도체 포트폴리오의 **하방 리스크(Downside Risk)**를 정량화하고,  
-  **시장 레짐 변화(Regime Shift)** 및 **변동성 국면(Volatility Regime)**을 관찰한다.
-- **핵심 방법**: Historical Rolling VaR (95%, 99%), Violation 분석(간단 Backtesting), 시각화
+본 프로젝트는 한국 반도체 주요 종목으로 구성된 동일가중 포트폴리오의 하방 리스크를 정량적으로 측정하고, 시장 환경 변화에 따른 변동성 국면과 레짐 변화를 분석하는 것을 목표로 한다.
 
-## 2. 데이터
-- **데이터 종류**: 개별 종목 일간 로그수익률 (Daily Log Return)
-- **포트폴리오 구성**: 동일가중(Equal-weight) 포트폴리오
-- **기간**: (예: 2017 ~ 2026-02-25)
+핵심 분석 방법은 Rolling Historical VaR(95%, 99%) 산출과 Kupiec POF 검정을 통한 백테스팅이다.
 
-## 3. 분석 방법 (Methodology)
-### 3.1 Portfolio Return
-- 동일가중 방식으로 포트폴리오 수익률을 계산:
-  - `Portfolio_Return = mean(stock_returns)`
+2. 데이터 및 포트폴리오 구성
+2.1 분석 대상 종목
 
-### 3.2 Rolling VaR (95%, 99%)
-- Rolling window 기반으로 VaR를 계산하여 시간에 따라 변하는 리스크를 추적:
-  - `Rolling_VaR_95`, `Rolling_VaR_99`
+삼성전자
 
-### 3.3 Violation 정의 (간단 Backtesting 지표)
-- **Violation**: `Portfolio_Return < Rolling_VaR`
-- 연도별 Violation Rate를 계산하여 위험 국면을 정량 비교:
-  - 기대 위반율(Expected rate): 95% → 5%, 99% → 1%
+SK하이닉스
 
-## 4. 주요 결과 (Key Findings)
-### 4.1 Volatility Regime & Tail Regime
-- 본 포트폴리오 수익률은 **변동성 군집(Volatility Clustering)**이 관찰되며,
-  특정 구간에서 하방 변동성이 급격히 확대되는 **레짐 변화**가 발생했다.
+삼성SDI
 
-### 4.2 Structural Shock vs Prolonged Stress
-- **Structural Shock(구조적 충격)**: 짧은 기간에 **극단적 손실(-8%~-10%)**이 집중 발생  
-  → 예: 2020년 구간에서 VaR 위반이 증가하며 tail risk가 크게 확대됨
-- **Prolonged Stress(지속적 스트레스)**: 극단적 -10% 충격은 적지만,  
-  **-4%~-6% 수준의 손실이 장기간 반복**되어 95% VaR 위반이 누적됨  
-  → 예: 2024~2025년 구간에서 변동성 확대 국면이 지속
+2.2 데이터 정보
 
-## 5. 결과 시각화 (Figures)
-- Rolling VaR & Violation Plot:
-  - `results/figures/rolling_var_violation_95.png`
-  - `results/figures/rolling_var_violation_99.png`
+데이터 빈도: 일별
 
-## 6. 파일 구조 (Project Structure)
-```text
-src/
-  visualization.py   # plotting & yearly violation tables
-results/
-  figures/
-  tables/
-data/
-  processed/
+수익률 유형: 로그수익률
+
+포트폴리오 구성 방식: 동일가중
+
+분석 기간: 2017년 ~ 2026-02-25
+
+데이터 출처: yfinance
+
+2.3 포트폴리오 수익률 계산
+Portfolio_Return = mean(stock_returns)
+3. 분석 방법론
+3.1 Rolling Historical VaR
+
+이동 윈도우 기반 Historical VaR를 계산하여 시간에 따라 변화하는 리스크 수준을 추적하였다.
+
+신뢰수준: 95%, 99%
+
+산출 지표:
+
+Rolling_VaR_95
+
+Rolling_VaR_99
+
+지표 해석:
+
+VaR 95%: 하루 기준 5% 확률로 발생 가능한 최대 손실 수준
+
+VaR 99%: 하루 기준 1% 확률로 발생 가능한 최대 손실 수준
+
+3.2 위반(Violation) 정의
+Violation = 1 if Portfolio_Return < Rolling_VaR
+Violation = 0 otherwise
+
+기대 위반율:
+
+95% VaR → 5%
+
+99% VaR → 1%
+
+연도별 위반율을 계산하여 위험 국면을 비교하였다.
+
+3.3 백테스팅: Kupiec POF 검정
+
+Rolling VaR 모델의 통계적 타당성을 검증하기 위해 Kupiec POF(Proportion of Failures) 검정을 수행하였다.
+
+가설 설정:
+
+H0: 실제 위반율 = 기대 위반율
+
+H1: 실제 위반율 ≠ 기대 위반율
+
+검정 방법:
+
+자유도 1의 카이제곱 분포 사용
+
+4. 백테스팅 결과
+VaR 수준	기대 위반율	실제 위반율	위반 횟수	p-value	판정
+95%	5%	5.78%	129 / 2230	0.0968	기각 불가
+99%	1%	1.48%	33 / 2230	0.0335	기각
+
+해석:
+
+VaR 95%는 통계적으로 기각되지 않아 중간 수준의 하방 위험은 비교적 적절히 포착한 것으로 판단된다.
+
+VaR 99%는 통계적으로 기각되어 극단적 꼬리위험을 과소추정하고 있음을 시사한다.
+
+5. 위험 국면 분석
+5.1 구조적 충격 국면 (2020년)
+
+-8% ~ -10% 수준의 극단적 손실 집중 발생
+
+99% VaR 위반율 급증
+
+꼬리위험 확대
+
+해당 구간은 구조적 레짐 변화로 해석할 수 있다.
+
+5.2 지속적 스트레스 국면 (2024~2025년)
+
+-4% ~ -6% 수준 손실 반복
+
+95% VaR 위반 누적 증가
+
+변동성 재확대 국면
+
+해당 구간은 중간 수준 위험이 장기간 지속된 스트레스 환경으로 볼 수 있다.
+
+6. 시사점
+
+Historical VaR는 정상 구간에서는 비교적 안정적으로 작동한다.
+
+레짐 변화 구간에서는 후행적 특성을 보인다.
+
+극단적 손실 관리를 위해 CVaR 또는 변동성 모형(EWMA, GARCH) 확장이 필요하다.
+
+7. 산출 결과 파일
+
+results/figures/rolling_var_violation_95.png
+
+results/figures/rolling_var_violation_99.png
+
+results/tables/yearly_violation_rate_95.csv
+
+results/tables/yearly_violation_rate_99.csv
+
+8. Stress Scenario & Risk Forecast
+
+다음 단계에서는 정태적 VaR 분석을 넘어
+미래 리스크 예측 및 스트레스 시나리오 분석으로 확장할 예정이다.
+
+8.1 스트레스 시나리오 분석
+
+과거 극단적 손실 구간(예: 2020년) 기반 충격 시뮬레이션
+
+가정된 수익률 충격(-5%, -10%) 적용 시 포트폴리오 손실 추정
+
+위험 관리 기준선 설정
+
+8.2 단기 리스크 예측
+
+변동성 기반 1주일 VaR 추정
+
+현재 변동성 국면에서의 예상 최대 손실 범위 분석
+
+이를 통해 단순 과거 평가가 아닌
+의사결정 지원형 리스크 분석 프레임워크로 확장할 계획이다.

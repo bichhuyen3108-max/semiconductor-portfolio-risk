@@ -3,6 +3,7 @@ import numpy as np  # 분위수(quantile) 계산용
 import pandas as pd  # 데이터 처리
 
 from src.config import CONF_LEVELS  # 예: [0.95, 0.99]
+from scipy.stats import chi2
 
 
 def load_returns(path: str = "data/processed/log_returns.csv") -> pd.DataFrame:
@@ -93,6 +94,92 @@ def rolling_historical_var(port_returns, window=252, alpha=0.95):
 
     return rolling_var
 
+def kupiec_pof_test(
+    violations: np.ndarray,
+    expected_rate: float,
+):
+    """
+    (KR) Kupiec POF(Proportion of Failures) Test
+    - 목적: VaR 위반 비율이 이론적 기대치(p)와 일치하는지 통계적으로 검정
+
+    H0(귀무가설): 실제 위반확률 = 기대 위반확률 p
+    H1(대립가설): 실제 위반확률 != p
+
+    Parameters
+    ----------
+    violations : np.ndarray (0/1 or False/True)
+        위반 여부 배열 (1이면 위반)
+    expected_rate : float
+        기대 위반확률 (VaR 95% -> 0.05, VaR 99% -> 0.01)
+
+    Returns
+    -------
+    dict:
+        n: 총 관측치
+        x: 위반 횟수
+        fail_rate: 실제 위반율
+        LR_pof: Kupiec 통계량 (chi-square(1))
+        p_value: p-value
+    """
+    v = np.asarray(violations).astype(int)
+    n = v.size
+    x = int(v.sum())
+    p = float(expected_rate)
+
+    # 실제 위반율
+    fail_rate = x / n if n > 0 else np.nan
+
+    # 예외 처리: x=0 또는 x=n인 경우 로그 계산 안정화
+    # (작은 epsilon 추가)
+    eps = 1e-12
+    phat = np.clip(fail_rate, eps, 1 - eps)
+    p = np.clip(p, eps, 1 - eps)
+
+    # Kupiec LR statistic
+    # LR = -2 ln( ( (1-p)^(n-x) p^x ) / ( (1-phat)^(n-x) phat^x ) )
+    logL0 = (n - x) * np.log(1 - p) + x * np.log(p)
+    logL1 = (n - x) * np.log(1 - phat) + x * np.log(phat)
+    LR_pof = -2 * (logL0 - logL1)
+
+    # p-value (chi-square df=1)
+    p_value = 1 - chi2.cdf(LR_pof, df=1)
+
+    return {
+        "n": n,
+        "x": x,
+        "fail_rate": fail_rate,
+        "LR_pof": LR_pof,
+        "p_value": p_value,
+    }
+
+
+def run_var_backtest_kupiec(df, level: int):
+    """
+    (KR) 특정 신뢰수준(level)에 대해
+    - 위반율 계산
+    - Kupiec POF 테스트 수행
+    """
+    vio_col = f"Violation_{level}"
+    if vio_col not in df.columns:
+        raise ValueError(f"필요 컬럼 없음: {vio_col}")
+
+    expected_rate = 0.05 if level == 95 else 0.01
+    result = kupiec_pof_test(df[vio_col].values, expected_rate)
+
+    # (KR) 결과 요약 문장 (Velog/README에 바로 쓰기 좋게)
+    verdict = "PASS" if result["p_value"] > 0.05 else "FAIL"
+
+    summary = {
+        "level": level,
+        "expected_rate": expected_rate,
+        "n": result["n"],
+        "violations": result["x"],
+        "violation_rate": result["fail_rate"],
+        "LR_pof": result["LR_pof"],
+        "p_value": result["p_value"],
+        "verdict": verdict,
+    }
+    return summary
 
 if __name__ == "__main__":
     # 결과 저장 폴더 생성
