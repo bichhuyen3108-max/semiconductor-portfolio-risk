@@ -1,147 +1,223 @@
-한국 반도체 포트폴리오 시장위험 정량 분석
-Rolling VaR 및 백테스팅 기반 리스크 평가
-1. 프로젝트 개요
+# 📊 Semiconductor Portfolio Market Risk Analysis
+## Value-at-Risk Based Risk Quantification for Korean Semiconductor Portfolio
 
-본 프로젝트는 한국 반도체 주요 종목으로 구성된 동일가중 포트폴리오의 하방 리스크를 정량적으로 측정하고, 시장 환경 변화에 따른 변동성 국면과 레짐 변화를 분석하는 것을 목표로 한다.
+## 📌 Project Overview
 
-핵심 분석 방법은 Rolling Historical VaR(95%, 99%) 산출과 Kupiec POF 검정을 통한 백테스팅이다.
+본 프로젝트는 **한국 반도체 기업 포트폴리오의 시장 위험(Market Risk)**을 정량적으로 분석하기 위한 데이터 분석 프로젝트입니다.
 
-2. 데이터 및 포트폴리오 구성
-2.1 분석 대상 종목
+Python 기반 데이터 분석 파이프라인을 구축하여 포트폴리오 수익률을 계산하고 다양한 Value at Risk (VaR) 모델을 적용하여 하방 리스크를 분석하였습니다.
 
-삼성전자
+또한 **Backtesting (Kupiec Test)**을 통해 VaR 모델의 적합성을 검증하고 Stress Testing을 통해 극단적 시장 상황에서의 포트폴리오 손실을 평가하였습니다.
 
-SK하이닉스
+## 🎯 Project Objectives
 
-삼성SDI
+본 프로젝트의 주요 목적은 다음과 같습니다.
 
-2.2 데이터 정보
+    - 금융 데이터 기반 시장 위험(Market Risk) 정량 분석
+    - 포트폴리오 수익률 계산 및 리스크 지표 분석
+    - 다양한 VaR 모델 비교
+        - Historical VaR
+        - Student-t VaR
+        - GARCH VaR
+    - **VaR Backtesting (Kupiec Test)**을 통한 모델 검증
+    - 금융 데이터 분석 Pipeline 구축 및 시각화
 
-데이터 빈도: 일별
+## 📂 Dataset
+### 분석 대상 기업 (Korean Semiconductor Companies)
 
-수익률 유형: 로그수익률
+    - Samsung Electronics
+    - SK Hynix
+    - Samsung SDI
 
-포트폴리오 구성 방식: 동일가중
+### Data Source
+    Yahoo Finance
 
-분석 기간: 2017년 ~ 2026-02-25
+### Data Period
+    2016 – 2026
 
-데이터 출처: yfinance
+## 🧠 Methodology
 
-2.3 포트폴리오 수익률 계산
-Portfolio_Return = mean(stock_returns)
-3. 분석 방법론
-3.1 Rolling Historical VaR
+본 프로젝트에서는 다음과 같은 리스크 분석 모델을 적용하였습니다.
 
-이동 윈도우 기반 Historical VaR를 계산하여 시간에 따라 변화하는 리스크 수준을 추적하였다.
+### 1️⃣ Historical VaR
 
-신뢰수준: 95%, 99%
+과거 수익률 분포를 기반으로 VaR를 계산하는 방법입니다.
 
-산출 지표:
+특징
 
-Rolling_VaR_95
+    - 구현이 간단
+    - 과거 데이터 기반 분석
+    - 시장 충격에 대한 반응 속도가 상대적으로 느림
 
-Rolling_VaR_99
+### 2️⃣ Student-t VaR
 
-지표 해석:
+Student-t 분포를 이용하여 fat-tail 특성을 반영한 VaR 모델입니다.
 
-VaR 95%: 하루 기준 5% 확률로 발생 가능한 최대 손실 수준
+특징
 
-VaR 99%: 하루 기준 1% 확률로 발생 가능한 최대 손실 수준
+    - 금융 데이터의 두꺼운 꼬리 분포 반영
+    - 극단적인 손실 가능성을 보다 보수적으로 추정
 
-3.2 위반(Violation) 정의
-Violation = 1 if Portfolio_Return < Rolling_VaR
-Violation = 0 otherwise
+### 3️⃣ GARCH VaR
 
-기대 위반율:
+GARCH(1,1) 모델을 이용하여 **조건부 변동성 (Conditional Volatility)**을 반영한 VaR 모델입니다.
 
-95% VaR → 5%
+특징
 
-99% VaR → 1%
+    - 시장 변동성 변화 반영
+    - volatility clustering 모델링 가능
+    - 시장 충격 발생 시 VaR 값이 빠르게 확대
 
-연도별 위반율을 계산하여 위험 국면을 비교하였다.
 
-3.3 백테스팅: Kupiec POF 검정
+## 🔄 Project Pipeline
 
-Rolling VaR 모델의 통계적 타당성을 검증하기 위해 Kupiec POF(Proportion of Failures) 검정을 수행하였다.
+프로젝트 분석 과정
 
-가설 설정:
+    Data Download
+            ↓
+    Data Preprocessing
+            ↓
+    Log Return Calculation
+            ↓
+    Portfolio Return Construction
+            ↓
+    VaR / CVaR Calculation
+            ↓
+    Rolling VaR Estimation
+            ↓
+    Backtesting (Kupiec Test)
+            ↓
+    Stress Testing
+            ↓
+    Visualization
+            ↓
+    Insight Extraction
 
-H0: 실제 위반율 = 기대 위반율
 
-H1: 실제 위반율 ≠ 기대 위반율
+## 📈 Risk Metrics
 
-검정 방법:
+본 프로젝트에서 사용한 주요 리스크 지표
 
-자유도 1의 카이제곱 분포 사용
+    - VaR (Value at Risk)
+    - CVaR (Expected Shortfall)
+    - Rolling VaR
+    - Kupiec Backtesting
+    - Stress Testing
 
-4. 백테스팅 결과
-VaR 수준	기대 위반율	실제 위반율	위반 횟수	p-value	판정
-95%	5%	5.78%	129 / 2230	0.0968	기각 불가
-99%	1%	1.48%	33 / 2230	0.0335	기각
+## 📊 Visualization
+### Return vs VaR
 
-해석:
+포트폴리오 수익률과 VaR 변화를 비교하여
+시장 변동성과 리스크 변화를 시각적으로 분석합니다.
 
-VaR 95%는 통계적으로 기각되지 않아 중간 수준의 하방 위험은 비교적 적절히 포착한 것으로 판단된다.
+Example
 
-VaR 99%는 통계적으로 기각되어 극단적 꼬리위험을 과소추정하고 있음을 시사한다.
+    results/figures/return_vs_var_zoom_95.png
 
-5. 위험 국면 분석
-5.1 구조적 충격 국면 (2020년)
 
--8% ~ -10% 수준의 극단적 손실 집중 발생
+### VaR Model Comparison
 
-99% VaR 위반율 급증
+다음 VaR 모델을 비교 분석합니다.
 
-꼬리위험 확대
+    - Historical VaR
+    - Student-t VaR
+    - GARCH VaR
 
-해당 구간은 구조적 레짐 변화로 해석할 수 있다.
+Example:
 
-5.2 지속적 스트레스 국면 (2024~2025년)
+    results/figures/var_models_only_95.png    
 
--4% ~ -6% 수준 손실 반복
+## 📉 Backtesting Result (Kupiec Test)
 
-95% VaR 위반 누적 증가
+VaR 모델의 적합성을 평가하기 위해 Kupiec POF Test를 수행하였습니다.   
 
-변동성 재확대 국면
+| Model          | Confidence Level | Violation Rate | Result |
+| -------------- | ---------------- | -------------- | ------ |
+| Historical VaR | 95%              | ~5.78%         | PASS   |
+| Historical VaR | 99%              | ~1.48%         | FAIL   |
+| Student-t VaR  | 95%              | ~5.4%          | PASS   |
+| GARCH VaR      | 95%              | ~4.7%          | PASS   |
 
-해당 구간은 중간 수준 위험이 장기간 지속된 스트레스 환경으로 볼 수 있다.
+결과적으로 Student-t VaR와 GARCH VaR가 Historical VaR보다 안정적인 성능을 보였습니다.
 
-6. 시사점
 
-Historical VaR는 정상 구간에서는 비교적 안정적으로 작동한다.
+## 💡 Key Insights
 
-레짐 변화 구간에서는 후행적 특성을 보인다.
+분석 결과 다음과 같은 특징을 확인할 수 있었습니다.
 
-극단적 손실 관리를 위해 CVaR 또는 변동성 모형(EWMA, GARCH) 확장이 필요하다.
+### 1️⃣ Volatility Clustering
 
-7. 산출 결과 파일
+시장 변동성이 급격히 증가하는 구간에서 VaR 값이 크게 확대되는 volatility clustering 현상이 나타났습니다.
 
-results/figures/rolling_var_violation_95.png
+특히 2020년 COVID 시장 충격 구간에서 포트폴리오 수익률이 VaR를 크게 하회하는 extreme loss가 발생했습니다.
 
-results/figures/rolling_var_violation_99.png
+### 2️⃣ Historical VaR 특징
 
-results/tables/yearly_violation_rate_95.csv
+Historical VaR 모델은 과거 데이터 기반이기 때문에
+시장 충격에 대한 반응 속도가 상대적으로 느린 특징을 보였습니다.
 
-results/tables/yearly_violation_rate_99.csv
+### 3️⃣ Student-t VaR 특징
 
-8. Stress Scenario & Risk Forecast
+Student-t 분포는 fat-tail 특성을 반영하여
+극단적인 손실 가능성을 보다 보수적으로 추정하는 특징을 보였습니다.
 
-다음 단계에서는 정태적 VaR 분석을 넘어
-미래 리스크 예측 및 스트레스 시나리오 분석으로 확장할 예정이다.
+### 4️⃣ GARCH VaR 특징
 
-8.1 스트레스 시나리오 분석
+GARCH VaR는 조건부 변동성을 반영하기 때문에
+시장 변동성 증가 구간에서 VaR 값이 빠르게 확대되는 특징을 보였습니다.
 
-과거 극단적 손실 구간(예: 2020년) 기반 충격 시뮬레이션
 
-가정된 수익률 충격(-5%, -10%) 적용 시 포트폴리오 손실 추정
+## 🛠 Tech Stack
 
-위험 관리 기준선 설정
+사용 기술
+    - Python
+    - Pandas
+    - NumPy
+    - Matplotlib
+    - SciPy
+    - ARCH (GARCH Model)
+    
+## 📁 Project Structure
+semiconductor-portfolio-risk
+│
+├─ data
+│   ├─ raw
+│   └─ processed
+│
+├─ results
+│   ├─ tables
+│   └─ figures
+│
+├─ src
+│   ├─ config.py
+│   ├─ data_download.py
+│   ├─ preprocess.py
+│   ├─ portfolio.py
+│   ├─ risk_metrics.py
+│   ├─ visualization.py
+│   └─ run_analysis.py
+│
+└─ README.md
 
-8.2 단기 리스크 예측
+## 🚀 Future Improvements
 
-변동성 기반 1주일 VaR 추정
+향후 다음과 같은 분석 확장을 고려할 수 있습니다.
 
-현재 변동성 국면에서의 예상 최대 손실 범위 분석
+    - Monte Carlo VaR
 
-이를 통해 단순 과거 평가가 아닌
-의사결정 지원형 리스크 분석 프레임워크로 확장할 계획이다.
+    - EVT (Extreme Value Theory)
+
+    - Multi-factor Risk Model
+
+    - Portfolio Optimization
+
+
+## ⭐ Portfolio Note
+
+이 프로젝트는 금융 데이터 분석 역량 강화를 위한 개인 프로젝트입니다.
+
+본 프로젝트를 통해 다음 역량을 보여주고자 하였습니다.
+
+    - 금융 데이터 분석 파이프라인 구축
+    - VaR 리스크 모델 구현
+    - 데이터 기반 리스크 인사이트 도출

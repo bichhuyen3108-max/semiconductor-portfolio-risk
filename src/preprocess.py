@@ -1,7 +1,7 @@
 import os  # 운영체제(OS) 관련 기능 사용 (폴더 생성 등)
 import numpy as np  # 수치 계산 라이브러리 (로그 계산용)
 import pandas as pd  # 데이터프레임 처리 라이브러리
-from src.config import TICKERS
+from .config import TICKERS
 
 
 def load_prices(path: str = "data/raw/adj_close.csv") -> pd.DataFrame:
@@ -33,7 +33,8 @@ def compute_log_returns(prices: pd.DataFrame) -> pd.DataFrame:
     :param prices: 종가 데이터
     :return: 로그 수익률 DataFrame
     """
-    
+    prices = prices.dropna(how="any")  # align to full-available days
+
     # 이전 날짜 가격 대비 현재 가격 비율 계산 후 자연로그 적용
     log_ret = np.log(prices / prices.shift(1))
     
@@ -48,17 +49,14 @@ if __name__ == "__main__":
     # data/processed 폴더가 없으면 생성
     os.makedirs("data/processed", exist_ok=True)
     
-    # 1️⃣ 종가 데이터 불러오기
+    # 종가 데이터 불러오기
     prices = load_prices()
     
-    # 2️⃣ 모든 종목이 동시에 존재하는 날짜만 유지 (포트폴리오 계산 안정성 확보)
-    prices = prices.dropna()
-    
-    # 3️⃣ 로그 수익률 계산
+    # 로그 수익률 계산
     log_ret = compute_log_returns(prices)
     
-    # 4️⃣ CSV 파일로 저장
+    # CSV 파일로 저장
     log_ret.to_csv("data/processed/log_returns.csv")
     
-    # 5️⃣ 저장 결과 출력 (행 개수, 열 개수 확인)
+    # 저장 결과 출력 (행 개수, 열 개수 확인)
     print("Saved: data/processed/log_returns.csv", log_ret.shape)

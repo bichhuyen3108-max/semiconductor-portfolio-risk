@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator
 import matplotlib.ticker as mtick
 from src.risk_metrics import run_var_backtest_kupiec
+from src.portfolio import make_equal_weights, portfolio_return
 
 
 
@@ -27,7 +28,8 @@ def plot_var_cvar_multi_levels(
     # ===============================
     # 2) 동일가중 포트폴리오 수익률
     # ===============================
-    port = returns.mean(axis=1)
+    w = make_equal_weights(returns.columns)
+    port = portfolio_return(returns, w)   # Series name="portfolio"
 
     # ===============================
     # 3) 분포 히스토그램(전체) 먼저 그림
@@ -41,7 +43,7 @@ def plot_var_cvar_multi_levels(
     for alpha_conf in conf_levels:
         q = 1 - alpha_conf  # left-tail 확률 (예: 0.95 -> 0.05)
 
-        var = np.quantile(port, q)
+        var = port.quantile(q)
         tail = port[port <= var]
         cvar = float(tail.mean())
 
@@ -91,13 +93,14 @@ def load_portfolio_and_rolling_var(
     # 종목 수익률만 추출
     returns = log_df.drop(columns=["Date"], errors="ignore").dropna().astype(float)
 
-    # 동일가중 포트폴리오 수익률
-    port = returns.mean(axis=1)
+    w = make_equal_weights(returns.columns)
+    port = portfolio_return(returns, w)   # index aligned with returns.index
+
 
     # 포트폴리오 수익률 DF
     port_df = pd.DataFrame({
         "Date": log_df.loc[returns.index, "Date"].values,
-        "Portfolio_Return": port.values
+        "portfolio": port.values
     })
 
     # 2) Rolling VaR 로드
@@ -108,25 +111,44 @@ def load_portfolio_and_rolling_var(
     rolling_df["Date"] = pd.to_datetime(rolling_df["Date"])
 
     # 3) Date 기준으로 결합 (inner join: 공통 날짜만)
-    df = pd.merge(rolling_df, port_df, on="Date", how="inner").sort_values("Date").reset_index(drop=True)
+   # ✅ nếu rolling_df lỡ có cột portfolio cũ thì bỏ nó trước khi merge
+    rolling_df = rolling_df.drop(columns=["portfolio", "Portfolio_Return"], errors="ignore")
+
+    merged = (
+        pd.merge(rolling_df, port_df, on="Date", how="inner")
+        .sort_values("Date")
+        .reset_index(drop=True)
+    )
+
+    # ✅ đảm bảo chỉ 1 cột portfolio
+    if "portfolio_x" in merged.columns and "portfolio_y" in merged.columns:
+        merged = merged.drop(columns=["portfolio_x"]).rename(columns={"portfolio_y": "portfolio"})
+    elif "portfolio_y" in merged.columns:
+        merged = merged.rename(columns={"portfolio_y": "portfolio"})
+    elif "portfolio_x" in merged.columns:
+        merged = merged.rename(columns={"portfolio_x": "portfolio"})
 
     # 필수 컬럼 체크
     for col in ["Rolling_VaR_95", "Rolling_VaR_99"]:
-        if col not in df.columns:
+        if col not in merged.columns:
             raise ValueError(f"rolling_var.csv 파일에 '{col}' 컬럼이 없습니다.")
 
-    return df
+    return port, merged
 
 
 def add_violations(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    (KR) 위반(Violation) 생성: 실제 수익률 < VaR 인 경우 True
-    """
     out = df.copy()
-    out["Violation_95"] = out["Portfolio_Return"] < out["Rolling_VaR_95"]
-    out["Violation_99"] = out["Portfolio_Return"] < out["Rolling_VaR_99"]
-    return out
 
+    if "portfolio" in out.columns:
+        ret_col = "portfolio"
+    elif "Portfolio_Return" in out.columns:
+        ret_col = "Portfolio_Return"
+    else:
+        raise KeyError(f"[add_violations] return column not found. columns={list(out.columns)}")
+
+    out["Violation_95"] = out[ret_col] < out["Rolling_VaR_95"]
+    out["Violation_99"] = out[ret_col] < out["Rolling_VaR_99"]
+    return out
 
 def plot_return_vs_rolling_var(
     df: pd.DataFrame,
@@ -158,7 +180,7 @@ def plot_return_vs_rolling_var(
     plt.figure(figsize=(14, 6))
 
     # 실제 포트폴리오 수익률
-    plt.plot(df["Date"], df["Portfolio_Return"], label="Portfolio Return", alpha=0.6)
+    plt.plot(df["Date"], df["portfolio"], label="Portfolio Return", alpha=0.6)
 
     # Rolling VaR
     plt.plot(df["Date"], df[var_col], label=f"Rolling VaR {level}%", linestyle="--")
@@ -167,7 +189,7 @@ def plot_return_vs_rolling_var(
     vio_points = df[df[vio_col]]
     plt.scatter(
         vio_points["Date"],
-        vio_points["Portfolio_Return"],
+        vio_points["portfolio"],
         label=f"Violation ({level}%)",
         s=18
     )
@@ -203,14 +225,14 @@ def calc_yearly_violation_rate_from_rolling_var(
     df: pd.DataFrame,
     level: int = 95,
     date_col: str = "Date",
-    ret_col: str = "Portfolio_Return",
+    ret_col: str = "portfolio",
 ) -> pd.DataFrame:
     """
     (KR) Rolling VaR 결과를 이용해 연도별 Violation Rate(위반율)을 계산합니다.
 
     ✅ 필요한 컬럼:
     - Date (날짜)
-    - Portfolio_Return (일간 수익률)
+    - portfolio (일간 수익률)
     - Rolling_VaR_{level} (예: Rolling_VaR_95 / Rolling_VaR_99)
 
     ✅ Violation 정의:
@@ -261,7 +283,8 @@ def run_rolling_var_plots():
     """
     (KR) 전체 실행: 데이터 로드 -> 위반 생성 -> 95%, 99% 그래프 저장/표시
     """
-    df = load_portfolio_and_rolling_var()
+    _, df = load_portfolio_and_rolling_var()
+    print("[DEBUG] df.columns =", df.columns.tolist())
     df = add_violations(df)
 
     # ===============================
@@ -301,7 +324,7 @@ def run_rolling_var_plots():
 
 
 def run_backtesting_post3():
-    df = load_portfolio_and_rolling_var()
+    _, df = load_portfolio_and_rolling_var()
     df = add_violations(df)
 
     res95 = run_var_backtest_kupiec(df, level=95)
@@ -314,3 +337,98 @@ def run_backtesting_post3():
             f"actual={r['violation_rate']:.2%} ({r['violations']}/{r['n']}), "
             f"p-value={r['p_value']:.4f} => {r['verdict']}"
         )
+
+
+def plot_return_vs_var_zoom(df_hist, df_models, level=95):
+    """
+    Return vs VaR (zoom view)
+    """
+
+    plt.figure(figsize=(15,6))
+
+    plt.plot(
+        df_models["Date"],
+        df_models["portfolio"],
+        label="Portfolio Return",
+        alpha=0.3,
+        color="gray"
+    )
+
+    plt.plot(
+        df_hist["Date"],
+        df_hist[f"Rolling_VaR_{level}"],
+        label="Historical VaR",
+        color="blue"
+    )
+
+    plt.plot(
+        df_models["Date"],
+        df_models[f"Rolling_tVaR_{level}"],
+        label="Student-t VaR",
+        color="orange"
+    )
+
+    plt.plot(
+        df_models["Date"],
+        df_models[f"Rolling_GARCHVaR_{level}"],
+        label="GARCH VaR",
+        color="green"
+    )
+
+   
+    plt.ylim(-0.12, 0.05)
+
+    plt.title(f"Portfolio Return vs VaR ({level}%)")
+    plt.xlabel("Date")
+    plt.ylabel("Return")
+
+    plt.legend()
+    plt.grid(alpha=0.3)
+
+    plt.tight_layout()
+
+    plt.savefig(f"results/figures/return_vs_var_zoom_{level}.png", dpi=300)
+
+    plt.show()
+
+
+def plot_var_models_only(df_hist, df_models, level=95):
+    """
+    VaR model comparison (Historical vs Student-t vs GARCH)
+    """
+
+    plt.figure(figsize=(15,6))
+
+    plt.plot(
+        df_hist["Date"],
+        df_hist[f"Rolling_VaR_{level}"],
+        label="Historical VaR",
+        color="blue"
+    )
+
+    plt.plot(
+        df_models["Date"],
+        df_models[f"Rolling_tVaR_{level}"],
+        label="Student-t VaR",
+        color="orange"
+    )
+
+    plt.plot(
+        df_models["Date"],
+        df_models[f"Rolling_GARCHVaR_{level}"],
+        label="GARCH VaR",
+        color="green"
+    )
+
+    plt.title(f"VaR Model Comparison ({level}%)")
+    plt.xlabel("Date")
+    plt.ylabel("VaR")
+
+    plt.legend()
+    plt.grid(alpha=0.3)
+
+    plt.tight_layout()
+
+    plt.savefig(f"results/figures/var_models_only_{level}.png", dpi=300)
+
+    plt.show()   

@@ -1,0 +1,4 @@
+﻿Scenario,Shock_Return,PnL_KRW,Loss_KRW
+Historical Worst (1D Return),-0.10474563106380272,-1047456.3106380271,1047456.3106380271
+Severe Shock (-10%),-0.1,-1000000.0,1000000.0
+Moderate Shock (-5%),-0.05,-500000.0,500000.0
