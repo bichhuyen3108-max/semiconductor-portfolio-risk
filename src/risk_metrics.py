@@ -298,6 +298,125 @@ def run_var_backtest_kupiec_by_col(df: pd.DataFrame, vio_col: str, level: int):
     }
 
 
+def estimate_risk_thresholds_from_forecast_var(
+    merged_df: pd.DataFrame,
+    var_col: str = "VaR_return_h",
+    violation_col: str = "violation",
+) -> dict:
+    """
+    Forecast VaR 분포와 violation 데이터를 기반으로
+    리스크 threshold를 추정하는 함수
+
+    기준
+    ----------
+    - moderate_threshold: Forecast VaR 분포의 80% 분위수
+    - high_threshold: violation이 발생한 구간의 Forecast VaR 중앙값(median)
+
+    해석
+    ----------
+    Forecast VaR는 음수이므로,
+    값이 더 작을수록(더 음수일수록) 리스크가 크다고 해석한다.
+    """
+
+    if var_col not in merged_df.columns:
+        raise ValueError(f"'{var_col}' 컬럼이 없습니다.")
+    if violation_col not in merged_df.columns:
+        raise ValueError(f"'{violation_col}' 컬럼이 없습니다.")
+
+    df = merged_df.copy()
+    df[var_col] = pd.to_numeric(df[var_col], errors="coerce")
+    df = df.dropna(subset=[var_col])
+
+    # 전체 Forecast VaR 분포 기준 중간 리스크 임계값
+    moderate_threshold = df[var_col].quantile(0.20)
+    # 음수 값에서 20% 분위수는 더 '낮은 값' = 더 큰 리스크 구간
+
+    # violation 발생 구간의 VaR 분포를 따로 확인
+    vio_df = df[df[violation_col] == True].copy()
+
+    if len(vio_df) == 0:
+        # violation이 전혀 없다면 보수적으로 전체 분포의 10% 분위수 사용
+        high_threshold = df[var_col].quantile(0.10)
+    else:
+        # violation이 발생한 구간에서의 VaR 수준을 high risk 기준으로 사용
+        high_threshold = vio_df[var_col].median()
+
+    # VaR는 음수이므로, 더 작은 값(더 음수)이 더 높은 리스크를 의미함
+    # 따라서 high_threshold는 반드시 moderate_threshold보다 작아야 함
+    if high_threshold >= moderate_threshold:
+        moderate_threshold, high_threshold = high_threshold, moderate_threshold
+        
+    return {
+        "moderate_threshold": float(moderate_threshold),
+        "high_threshold": float(high_threshold),
+        "n_total": int(len(df)),
+        "n_violation": int(df[violation_col].sum()),
+        "violation_rate": float(df[violation_col].mean()),
+    }
+
+
+def add_risk_regime_from_forecast_var(
+    merged_df: pd.DataFrame,
+    var_col: str = "VaR_return_h",
+    threshold_info: dict = None,
+    base_exposure: float = 1.0,
+    moderate_exposure: float = 0.8,
+    high_exposure: float = 0.6,
+) -> pd.DataFrame:
+    """
+    Forecast VaR threshold를 기반으로
+    LOW / MODERATE / HIGH 리스크 레짐과 권장 포트폴리오 비중을 생성하는 함수
+    """
+
+    if var_col not in merged_df.columns:
+        raise ValueError(f"'{var_col}' 컬럼이 없습니다.")
+    if threshold_info is None:
+        raise ValueError("threshold_info가 필요합니다.")
+
+    moderate_threshold = threshold_info["moderate_threshold"]
+    high_threshold = threshold_info["high_threshold"]
+
+    df = merged_df.copy()
+    df[var_col] = pd.to_numeric(df[var_col], errors="coerce")
+    df = df.dropna(subset=[var_col]).reset_index(drop=True)
+
+    # 기본값 설정
+    df["risk_regime"] = "LOW"
+    df["suggested_exposure"] = base_exposure
+
+    # Forecast VaR가 threshold보다 더 작아질수록 리스크가 높다고 판단
+    moderate_mask = (df[var_col] <= moderate_threshold) & (df[var_col] > high_threshold)
+    high_mask = df[var_col] <= high_threshold
+
+    df.loc[moderate_mask, "risk_regime"] = "MODERATE"
+    df.loc[moderate_mask, "suggested_exposure"] = moderate_exposure
+
+    df.loc[high_mask, "risk_regime"] = "HIGH"
+    df.loc[high_mask, "suggested_exposure"] = high_exposure
+
+    # 전일 대비 권장 비중이 감소한 시점을 비중 축소 신호로 정의
+    df["reduce_signal"] = df["suggested_exposure"].diff().fillna(0) < 0
+
+    # threshold 값 저장
+    df["moderate_threshold"] = moderate_threshold
+    df["high_threshold"] = high_threshold
+
+    return df
+
+
+def save_risk_threshold_summary(
+    threshold_info: dict,
+    save_path: str = "results/tables/post4_risk_threshold_summary.csv"
+) -> pd.DataFrame:
+    """
+    추정된 risk threshold 정보를 csv로 저장하는 함수
+    """
+    out = pd.DataFrame([threshold_info])
+    out.to_csv(save_path, index=False, encoding="utf-8-sig")
+    print(f"Saved: {save_path}")
+    return out
+
+
 if __name__ == "__main__":
 
     print("RISK_METRICS PATH:", __file__)

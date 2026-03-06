@@ -1,5 +1,6 @@
 import yfinance as yf
 import pandas as pd
+from datetime import datetime, timedelta
 
 # KOSPI tickers
 tickers = {
@@ -9,7 +10,7 @@ tickers = {
 }
 
 start_date = "2015-01-01"
-end_date = "2026-01-25"
+end_date = (datetime.today() - timedelta(days=1)).strftime("%Y-%m-%d")  
 
 # Download (Close)
 df = yf.download(list(tickers.values()), start=start_date, end=end_date)["Close"]

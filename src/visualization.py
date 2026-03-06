@@ -2,12 +2,17 @@ import os
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.ticker import MultipleLocator
 import matplotlib.ticker as mtick
+import matplotlib as mpl
 from src.risk_metrics import run_var_backtest_kupiec
 from src.portfolio import make_equal_weights, portfolio_return
+from matplotlib.ticker import MultipleLocator
 
+# 한글 폰트 설정
+mpl.rcParams["font.family"] = "Malgun Gothic"
 
+# 마이너스 깨짐 방지
+mpl.rcParams["axes.unicode_minus"] = False
 
 def plot_var_cvar_multi_levels(
     csv_path: str = "data/processed/log_returns.csv",
@@ -431,4 +436,164 @@ def plot_var_models_only(df_hist, df_models, level=95):
 
     plt.savefig(f"results/figures/var_models_only_{level}.png", dpi=300)
 
-    plt.show()   
+    plt.show()  
+
+def plot_forecast_var_risk_threshold_signal(
+    df: pd.DataFrame,
+    date_col: str = "Date",
+    var_col: str = "VaR_return_h",
+    exposure_col: str = "suggested_exposure",
+    reduce_signal_col: str = "reduce_signal",
+    moderate_threshold_col: str = "moderate_threshold",
+    high_threshold_col: str = "high_threshold",
+    save_path: str = "results/figures/post4_risk_threshold_signal.png",
+    show: bool = True,
+):
+    """
+    Forecast VaR 기반 threshold / risk regime / 권장 포트폴리오 비중을 시각화하는 함수
+    """
+
+    required_cols = [
+        date_col, var_col, exposure_col, reduce_signal_col,
+        moderate_threshold_col, high_threshold_col, "risk_regime"
+    ]
+    for col in required_cols:
+        if col not in df.columns:
+            raise ValueError(f"'{col}' 컬럼이 없습니다.")
+
+    data = df.copy()
+    data[date_col] = pd.to_datetime(data[date_col], errors="coerce")
+    data = data.dropna(subset=[date_col, var_col]).sort_values(date_col).reset_index(drop=True)
+
+    moderate_mask = data["risk_regime"] == "MODERATE"
+    high_mask = data["risk_regime"] == "HIGH"
+    signal_mask = data[reduce_signal_col] == True
+
+    fig, ax1 = plt.subplots(figsize=(15, 6))
+
+    # Forecast VaR 선
+    ax1.plot(
+        data[date_col],
+        data[var_col],
+        color="black",
+        linestyle="--",
+        linewidth=1.8,
+        label="예측 VaR"
+    )
+
+    # threshold 선
+    ax1.axhline(
+        data[moderate_threshold_col].iloc[0],
+        color="orange",
+        linestyle=":",
+        linewidth=2.0,
+        label="중간 리스크 기준선"
+    )
+    ax1.axhline(
+        data[high_threshold_col].iloc[0],
+        color="red",
+        linestyle="-",
+        linewidth=2.0,
+        label="고위험 기준선"
+    )
+
+    # 리스크 구간 음영
+    ax1.fill_between(
+        data[date_col],
+        data[var_col].min(),
+        data[var_col].max(),
+        where=moderate_mask,
+        color="#FFD966",
+        alpha=0.10,
+        label="중간 리스크 구간"
+    )
+
+    ax1.fill_between(
+        data[date_col],
+        data[var_col].min(),
+        data[var_col].max(),
+        where=high_mask,
+        color="#F4A6A6",
+        alpha=0.14,
+        label="고위험 구간"
+    )
+
+    # 비중 축소 신호
+    ax1.scatter(
+        data.loc[signal_mask, date_col],
+        data.loc[signal_mask, var_col],
+        color="darkred",
+        s=45,
+        marker="o",
+        label="비중 축소 신호",
+        zorder=5
+    )
+
+    ax1.set_title("Forecast VaR 기반 포트폴리오 비중 축소 기준")
+    ax1.set_xlabel("Date")
+    ax1.set_ylabel("VaR 수익률")
+    ax1.grid(True, alpha=0.3)
+
+    # 보조축: 권장 포트폴리오 비중
+    ax2 = ax1.twinx()
+    ax2.plot(
+        data[date_col],
+        data[exposure_col],
+        color="green",
+        linewidth=1.8,
+        label="권장 포트폴리오 비중"
+    )
+    ax2.set_ylabel("권장 포트폴리오 비중")
+    ax2.set_ylim(0.0, 1.05)
+
+    # 범례 합치기
+    h1, l1 = ax1.get_legend_handles_labels()
+    h2, l2 = ax2.get_legend_handles_labels()
+
+    handles = h1 + h2
+    labels = l1 + l2
+
+    desired_order = [
+        "예측 VaR",
+        "중간 리스크 기준선",
+        "고위험 기준선",
+        "중간 리스크 구간",
+        "고위험 구간",
+        "비중 축소 신호",
+        "권장 포트폴리오 비중",
+    ]
+
+    ordered_handles = []
+    ordered_labels = []
+
+    for name in desired_order:
+        if name in labels:
+            idx = labels.index(name)
+            ordered_handles.append(handles[idx])
+            ordered_labels.append(labels[idx])
+
+    ax1.legend(
+        ordered_handles,
+        ordered_labels,
+        loc="lower left",
+        fontsize=9,
+        frameon=True,
+        facecolor="white",
+        edgecolor="gray",
+        framealpha=0.95,
+        ncol=1
+    )
+
+    plt.tight_layout()
+
+    if save_path:
+        folder = save_path.rsplit("/", 1)[0]
+        import os
+        os.makedirs(folder, exist_ok=True)
+        plt.savefig(save_path, dpi=200, bbox_inches="tight")
+        print(f"Saved: {save_path}")
+
+    if show:
+        plt.show()
+    else:
+        plt.close()

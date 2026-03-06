@@ -6,6 +6,13 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import norm
 
+from .risk_metrics import (
+    estimate_risk_thresholds_from_forecast_var,
+    add_risk_regime_from_forecast_var,
+    save_risk_threshold_summary,
+)
+from .visualization import plot_forecast_var_risk_threshold_signal
+
 
 # =========================================================
 # 1) Stress Scenarios
@@ -353,7 +360,71 @@ def plot_forecast_var_vs_realized_return(
 
 
 # =========================================================
-# 5) Runner
+# 5) Risk Threshold from Forecast VaR + Violation
+# =========================================================
+def run_post4_risk_threshold_analysis(
+    merged_df: pd.DataFrame,
+    save_tables_dir: str = "results/tables",
+    save_figures_dir: str = "results/figures",
+    show_plot: bool = True,
+):
+    """
+    Forecast VaR와 violation 분석 결과를 기반으로
+    리스크 threshold를 추정하고,
+    포트폴리오 비중 축소 신호를 생성 및 시각화하는 함수
+    """
+
+    os.makedirs(save_tables_dir, exist_ok=True)
+    os.makedirs(save_figures_dir, exist_ok=True)
+
+    # 1. Forecast VaR 분포와 violation 정보를 이용하여 threshold 추정
+    threshold_info = estimate_risk_thresholds_from_forecast_var(
+        merged_df,
+        var_col="VaR_return_h",
+        violation_col="violation",
+    )
+
+    # 2. threshold 요약 저장
+    save_risk_threshold_summary(
+        threshold_info,
+        save_path=os.path.join(save_tables_dir, "post4_risk_threshold_summary.csv")
+    )
+
+    # 3. threshold를 기반으로 리스크 레짐 및 권장 포트폴리오 비중 생성
+    signal_df = add_risk_regime_from_forecast_var(
+        merged_df,
+        var_col="VaR_return_h",
+        threshold_info=threshold_info,
+        base_exposure=1.0,
+        moderate_exposure=0.8,
+        high_exposure=0.6,
+    )
+
+    # 4. 결과 테이블 저장
+    signal_path = os.path.join(save_tables_dir, "post4_risk_threshold_signal.csv")
+    signal_df.to_csv(signal_path, index=False, encoding="utf-8-sig")
+    print(f"Saved: {signal_path}")
+
+    # 5. 시각화 저장
+    plot_forecast_var_risk_threshold_signal(
+        signal_df,
+        date_col="Date",
+        var_col="VaR_return_h",
+        exposure_col="suggested_exposure",
+        reduce_signal_col="reduce_signal",
+        moderate_threshold_col="moderate_threshold",
+        high_threshold_col="high_threshold",
+        save_path=os.path.join(save_figures_dir, "post4_risk_threshold_signal.png"),
+        show=show_plot,
+    )
+
+    return {
+        "threshold_info": threshold_info,
+        "signal_df": signal_df,
+    }
+
+# =========================================================
+# 6) Runner
 # =========================================================
 def make_post4_input_from_port(port: pd.Series) -> pd.DataFrame:
     return pd.DataFrame({
@@ -456,7 +527,15 @@ def run_post4(
         show=show_plot,
     )
 
-    # 8) Save CSVs
+    # 8) Forecast VaR 분포 + violation 기반 risk threshold 분석
+    threshold_result = run_post4_risk_threshold_analysis(
+        merged_df=merged_df,
+        save_tables_dir=save_tables_dir,
+        save_figures_dir=save_figures_dir,
+        show_plot=show_plot,
+    )
+
+    # 9) Save CSVs
     stress_df.to_csv(os.path.join(save_tables_dir, "post4_stress_scenarios.csv"),
                      index=False, encoding="utf-8-sig")
     pd.DataFrame([forecast]).to_csv(os.path.join(save_tables_dir, "post4_var_forecast_summary.csv"),
@@ -479,4 +558,10 @@ def run_post4(
         "var_series": var_series,
         "realized_df": realized_df,
         "merged_df": merged_df,
+        "threshold_info": threshold_result["threshold_info"],
+        "signal_df": threshold_result["signal_df"],
     }
+
+
+
+
