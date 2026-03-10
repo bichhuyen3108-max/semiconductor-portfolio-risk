@@ -4,6 +4,7 @@ from typing import Dict, Optional, Any
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 from scipy.stats import norm
 
 from .risk_metrics import (
@@ -13,6 +14,8 @@ from .risk_metrics import (
 )
 from .visualization import plot_forecast_var_risk_threshold_signal
 
+from arch import arch_model
+from src.portfolio import make_equal_weights, portfolio_return
 
 # =========================================================
 # 1) Stress Scenarios
@@ -424,7 +427,164 @@ def run_post4_risk_threshold_analysis(
     }
 
 # =========================================================
-# 6) Runner
+# 6) GARCH conditional volatility
+# =========================================================
+
+def build_portfolio_returns_from_csv(
+    csv_path: str = "data/processed/log_returns.csv",
+) -> pd.DataFrame:
+    """
+    로그수익률 CSV로부터 동일가중 포트폴리오 수익률 시계열 생성
+
+    Parameters
+    ----------
+    csv_path : str
+        종목별 로그수익률 CSV 경로
+
+    Returns
+    -------
+    pd.DataFrame
+        [Date, portfolio] 컬럼을 가진 데이터프레임
+    """
+    df = pd.read_csv(csv_path)
+
+    if "Date" not in df.columns:
+        raise ValueError("CSV 파일에 'Date' 컬럼이 없습니다.")
+
+    df["Date"] = pd.to_datetime(df["Date"])
+    df = df.sort_values("Date").reset_index(drop=True)
+
+    # Date 제외한 수익률 컬럼만 사용
+    asset_cols = [c for c in df.columns if c != "Date"]
+    if len(asset_cols) == 0:
+        raise ValueError("수익률 컬럼이 없습니다. Date 외 컬럼을 확인하세요.")
+
+    returns_df = df[asset_cols].copy()
+
+    # 결측치가 있는 행 제거
+    valid_mask = returns_df.notna().all(axis=1)
+    df = df.loc[valid_mask].copy()
+    returns_df = returns_df.loc[valid_mask].copy()
+
+    # 동일가중 포트폴리오
+    weights = make_equal_weights(returns_df.columns.tolist())
+    port = portfolio_return(returns_df, weights)
+
+    out = pd.DataFrame({
+        "Date": df["Date"].values,
+        "portfolio": port.values
+    })
+
+    return out
+
+
+def classify_vol_regime(
+    vol_series: pd.Series,
+    low_q: float = 0.33,
+    high_q: float = 0.67,
+) -> tuple[pd.Series, float, float]:
+    """
+    변동성 시계열을 분위수 기준으로 Low / Moderate / High regime으로 구분
+
+    Parameters
+    ----------
+    vol_series : pd.Series
+        GARCH 조건부 변동성 시계열
+    low_q : float
+        Low 구간 상단 분위수
+    high_q : float
+        High 구간 시작 분위수
+
+    Returns
+    -------
+    regime : pd.Series
+        low / moderate / high 라벨
+    low_thr : float
+        low 분위수 기준값
+    high_thr : float
+        high 분위수 기준값
+    """
+    low_thr = vol_series.quantile(low_q)
+    high_thr = vol_series.quantile(high_q)
+
+    regime = pd.Series(index=vol_series.index, dtype="object")
+    regime[vol_series <= low_thr] = "low"
+    regime[(vol_series > low_thr) & (vol_series <= high_thr)] = "moderate"
+    regime[vol_series > high_thr] = "high"
+
+    return regime, low_thr, high_thr
+
+
+def compute_garch_volatility_regime(
+    csv_path: str = "data/processed/log_returns.csv",
+    out_csv_path: str = "results/tables/garch_volatility_regime.csv",
+    p: int = 1,
+    q: int = 1,
+    dist: str = "t",
+) -> pd.DataFrame:
+    """
+    포트폴리오 수익률 기준 GARCH 조건부 변동성 및 volatility regime 계산
+
+    Parameters
+    ----------
+    csv_path : str
+        로그수익률 CSV 파일 경로
+    out_csv_path : str
+        결과 CSV 저장 경로
+    p : int
+        GARCH(p, q) 중 p 값
+    q : int
+        GARCH(p, q) 중 q 값
+    dist : str
+        오차분포 가정 ('normal', 't' 등)
+
+    Returns
+    -------
+    pd.DataFrame
+        Date, portfolio, garch_vol, regime, low_thr, high_thr
+    """
+    os.makedirs(os.path.dirname(out_csv_path), exist_ok=True)
+
+    # 1. 포트폴리오 수익률 생성
+    port_df = build_portfolio_returns_from_csv(csv_path=csv_path).copy()
+
+    # 2. arch 패키지는 보통 % 단위 수익률에서 더 안정적으로 추정됨
+    #    따라서 로그수익률(예: 0.01)을 100배 하여 사용
+    ret_pct = port_df["portfolio"] * 100.0
+
+    # 3. GARCH(1,1) 적합
+    # mean='Zero': 평균을 0으로 두고 변동성 자체에 집중
+    model = arch_model(
+        ret_pct,
+        mean="Zero",
+        vol="GARCH",
+        p=p,
+        q=q,
+        dist=dist,
+        rescale=False
+    )
+
+    fitted = model.fit(disp="off")
+
+    # 4. 조건부 변동성 추출
+    # arch 결과도 % 단위이므로 다시 /100 하여 원래 수익률 스케일로 맞춤
+    cond_vol = fitted.conditional_volatility / 100.0
+
+    # 5. Regime 분류
+    regime, low_thr, high_thr = classify_vol_regime(cond_vol)
+
+    out = port_df.copy()
+    out["garch_vol"] = cond_vol.values
+    out["regime"] = regime.values
+    out["low_thr"] = low_thr
+    out["high_thr"] = high_thr
+
+    out.to_csv(out_csv_path, index=False, encoding="utf-8-sig")
+    print(f"Saved: {out_csv_path}")
+
+    return out
+# =========================================================
+# 7) Runner
 # =========================================================
 def make_post4_input_from_port(port: pd.Series) -> pd.DataFrame:
     return pd.DataFrame({

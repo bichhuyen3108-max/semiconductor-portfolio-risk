@@ -6,11 +6,31 @@ from src.visualization import (
     run_backtesting_post3,
     load_portfolio_and_rolling_var,
     plot_return_vs_var_zoom,
-    plot_var_models_only
+    plot_var_models_only,
+    plot_garch_volatility_regime
 )
 
-from src.risk_framework import make_post4_input_from_port, run_post4
+from src.risk_framework import (make_post4_input_from_port, run_post4,
+                                 compute_garch_volatility_regime)
 
+
+def run_garch_regime_analysis():
+    """
+    GARCH volatility regime 분석 실행
+    """
+
+    regime_df = compute_garch_volatility_regime(
+        csv_path="data/processed/log_returns.csv",
+        out_csv_path="results/tables/garch_volatility_regime.csv",
+        p=1,
+        q=1,
+        dist="t",
+    )
+
+    plot_garch_volatility_regime(
+        regime_df=regime_df,
+        save_path="results/figures/garch_volatility_regime.png",
+    )
 
 if __name__ == "__main__":
 
@@ -72,3 +92,6 @@ if __name__ == "__main__":
 
     # Chart 2: VaR 모델 비교
     plot_var_models_only(hist_df, models_df, 95)
+    
+    # GARCH regime
+    run_garch_regime_analysis()

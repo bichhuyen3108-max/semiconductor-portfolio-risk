@@ -13,7 +13,7 @@ def download_adj_close() -> pd.DataFrame:
     df = yf.download(
         tickers=tickers,
         start=START_DATE,
-        end=END_DATE,
+        end=None,
         auto_adjust=True,
         progress=False,
         threads=False,
@@ -43,7 +43,6 @@ def download_adj_close() -> pd.DataFrame:
 
     return prices
 
-
 def main():
     # 데이터 다운로드
     prices = download_adj_close()
@@ -57,6 +56,7 @@ def main():
 
     print(f"Saved: {save_path}")
     print(prices.head())
+
 
 
 if __name__ == "__main__":

@@ -429,6 +429,7 @@ def plot_var_models_only(df_hist, df_models, level=95):
     plt.xlabel("Date")
     plt.ylabel("VaR")
 
+    plt.xticks(rotation=45)
     plt.legend()
     plt.grid(alpha=0.3)
 
@@ -597,3 +598,126 @@ def plot_forecast_var_risk_threshold_signal(
         plt.show()
     else:
         plt.close()
+
+def plot_garch_volatility_regime(
+    regime_df: pd.DataFrame,
+    save_path: str = "results/figures/garch_volatility_regime.png",
+):
+    """
+    GARCH 조건부 변동성과 volatility regime 시각화
+
+    Parameters
+    ----------
+    regime_df : pd.DataFrame
+        compute_garch_volatility_regime() 결과 데이터프레임
+    save_path : str
+        그림 저장 경로
+    """
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+
+    df = regime_df.copy()
+    df["Date"] = pd.to_datetime(df["Date"])
+    df = df.sort_values("Date").reset_index(drop=True)
+
+    fig, ax1 = plt.subplots(figsize=(16, 7))
+
+    # -----------------------------
+    # 1) 포트폴리오 수익률 (보조 정보)
+    # -----------------------------
+    ax1.plot(
+        df["Date"],
+        df["portfolio"],
+        color="gray",
+        alpha=0.35,
+        linewidth=1.0,
+        label="포트폴리오 수익률"
+    )
+    ax1.set_ylabel("포트폴리오 수익률")
+    ax1.set_xlabel("Date")
+
+    # -----------------------------
+    # 2) Regime 배경색 표시
+    # -----------------------------
+    regime_colors = {
+        "low": "#d9f2d9",
+        "moderate": "#fff2cc",
+        "high": "#f4cccc",
+    }
+
+    for i in range(len(df) - 1):
+        reg = df.loc[i, "regime"]
+        ax1.axvspan(
+            df.loc[i, "Date"],
+            df.loc[i + 1, "Date"],
+            color=regime_colors.get(reg, "#ffffff"),
+            alpha=0.35
+        )
+
+    # -----------------------------
+    # 3) GARCH 변동성 (우측 축)
+    # -----------------------------
+    ax2 = ax1.twinx()
+
+    ax2.plot(
+        df["Date"],
+        df["garch_vol"],
+        color="black",
+        linestyle="--",
+        linewidth=2.0,
+        label="GARCH 조건부 변동성"
+    )
+
+    # 분위수 기준선
+    low_thr = df["low_thr"].iloc[0]
+    high_thr = df["high_thr"].iloc[0]
+
+    ax2.axhline(
+        low_thr,
+        color="orange",
+        linestyle=":",
+        linewidth=2,
+        label="중간 레짐 기준선"
+    )
+    ax2.axhline(
+        high_thr,
+        color="red",
+        linestyle="-",
+        linewidth=2,
+        label="고변동성 기준선"
+    )
+
+    ax2.set_ylabel("GARCH 조건부 변동성")
+
+    # -----------------------------
+    # 4) High regime 구간 마커 표시
+    # -----------------------------
+    high_mask = df["regime"] == "high"
+    ax2.scatter(
+        df.loc[high_mask, "Date"],
+        df.loc[high_mask, "garch_vol"],
+        s=28,
+        color="darkred",
+        label="High Volatility Regime",
+        zorder=5
+    )
+
+    # -----------------------------
+    # 5) 제목 / 범례
+    # -----------------------------
+    plt.title("GARCH Volatility Regime of Portfolio")
+
+    lines1, labels1 = ax1.get_legend_handles_labels()
+    lines2, labels2 = ax2.get_legend_handles_labels()
+
+    ax1.legend(
+        lines1 + lines2,
+        labels1 + labels2,
+        loc="upper left",
+        frameon=True
+    )
+
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=200, bbox_inches="tight")
+    plt.close()
+
+    print(f"Saved: {save_path}")
