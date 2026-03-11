@@ -94,7 +94,7 @@ Historical VaR는 과거 수익률 분포를 기반으로 포트폴리오의 잠
 
 Student-t 분포를 활용하여 금융 데이터의 **Fat Tail** 특성을 반영한 VaR 모델입니다.
 <p align="center">
-<img src="https://latex.codecogs.com/png.image?\dpi{150}\Large%20VaR_{\alpha}=\mu+\sigma\times t_{\alpha}">
+  <img src="results/formulas/student_t_var_formula.svg" width="260">
 </p>
 
 특징
