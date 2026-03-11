@@ -1,2 +1,0 @@
-﻿rule_type,Risk_Level,Action,risk_budget_pct,risk_budget_krw,estimated_var_loss_krw
-RISK_BUDGET,HIGH,노출 축소(예: 20%) 및 신규 매수 보류,0.08,800000.0,2001284.6649418103

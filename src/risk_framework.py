@@ -365,7 +365,7 @@ def plot_forecast_var_vs_realized_return(
 # =========================================================
 # 5) Risk Threshold from Forecast VaR + Violation
 # =========================================================
-def run_post4_risk_threshold_analysis(
+def run_risk_threshold_analysis(
     merged_df: pd.DataFrame,
     save_tables_dir: str = "results/tables",
     save_figures_dir: str = "results/figures",
@@ -390,7 +390,7 @@ def run_post4_risk_threshold_analysis(
     # 2. threshold 요약 저장
     save_risk_threshold_summary(
         threshold_info,
-        save_path=os.path.join(save_tables_dir, "post4_risk_threshold_summary.csv")
+        save_path=os.path.join(save_tables_dir, "risk_threshold_summary.csv")
     )
 
     # 3. threshold를 기반으로 리스크 레짐 및 권장 포트폴리오 비중 생성
@@ -404,7 +404,7 @@ def run_post4_risk_threshold_analysis(
     )
 
     # 4. 결과 테이블 저장
-    signal_path = os.path.join(save_tables_dir, "post4_risk_threshold_signal.csv")
+    signal_path = os.path.join(save_tables_dir, "risk_threshold_signal.csv")
     signal_df.to_csv(signal_path, index=False, encoding="utf-8-sig")
     print(f"Saved: {signal_path}")
 
@@ -417,7 +417,7 @@ def run_post4_risk_threshold_analysis(
         reduce_signal_col="reduce_signal",
         moderate_threshold_col="moderate_threshold",
         high_threshold_col="high_threshold",
-        save_path=os.path.join(save_figures_dir, "post4_risk_threshold_signal.png"),
+        save_path=os.path.join(save_figures_dir, "risk_threshold_signal.png"),
         show=show_plot,
     )
 
@@ -586,7 +586,7 @@ def compute_garch_volatility_regime(
 # =========================================================
 # 7) Runner
 # =========================================================
-def make_post4_input_from_port(port: pd.Series) -> pd.DataFrame:
+def make_input_from_port(port: pd.Series) -> pd.DataFrame:
     return pd.DataFrame({
         "Date": port.index,
         "portfolio": port.values
@@ -688,7 +688,7 @@ def run_post4(
     )
 
     # 8) Forecast VaR 분포 + violation 기반 risk threshold 분석
-    threshold_result = run_post4_risk_threshold_analysis(
+    threshold_result = run_risk_threshold_analysis(
         merged_df=merged_df,
         save_tables_dir=save_tables_dir,
         save_figures_dir=save_figures_dir,
@@ -696,13 +696,13 @@ def run_post4(
     )
 
     # 9) Save CSVs
-    stress_df.to_csv(os.path.join(save_tables_dir, "post4_stress_scenarios.csv"),
+    stress_df.to_csv(os.path.join(save_tables_dir, "stress_scenarios.csv"),
                      index=False, encoding="utf-8-sig")
-    pd.DataFrame([forecast]).to_csv(os.path.join(save_tables_dir, "post4_var_forecast_summary.csv"),
+    pd.DataFrame([forecast]).to_csv(os.path.join(save_tables_dir, "var_forecast_summary.csv"),
                                     index=False, encoding="utf-8-sig")
-    pd.DataFrame([decision]).to_csv(os.path.join(save_tables_dir, "post4_risk_decision_summary.csv"),
+    pd.DataFrame([decision]).to_csv(os.path.join(save_tables_dir, "risk_decision_summary.csv"),
                                     index=False, encoding="utf-8-sig")
-    var_series.to_csv(os.path.join(save_tables_dir, "post4_var_forecast_series.csv"),
+    var_series.to_csv(os.path.join(save_tables_dir, "var_forecast_series.csv"),
                       index=False, encoding="utf-8-sig")
     merged_df.to_csv(os.path.join(save_tables_dir, "forecast_vs_realized_merged.csv"),
                      index=False, encoding="utf-8-sig")

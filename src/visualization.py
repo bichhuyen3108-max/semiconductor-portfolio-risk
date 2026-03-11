@@ -447,7 +447,7 @@ def plot_forecast_var_risk_threshold_signal(
     reduce_signal_col: str = "reduce_signal",
     moderate_threshold_col: str = "moderate_threshold",
     high_threshold_col: str = "high_threshold",
-    save_path: str = "results/figures/post4_risk_threshold_signal.png",
+    save_path: str = "results/figures/risk_threshold_signal.png",
     show: bool = True,
 ):
     """

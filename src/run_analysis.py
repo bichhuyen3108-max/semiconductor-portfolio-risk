@@ -10,7 +10,7 @@ from src.visualization import (
     plot_garch_volatility_regime
 )
 
-from src.risk_framework import (make_post4_input_from_port, run_post4,
+from src.risk_framework import (make_input_from_port, run_post4,
                                  compute_garch_volatility_regime)
 
 

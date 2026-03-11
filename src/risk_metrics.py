@@ -406,7 +406,7 @@ def add_risk_regime_from_forecast_var(
 
 def save_risk_threshold_summary(
     threshold_info: dict,
-    save_path: str = "results/tables/post4_risk_threshold_summary.csv"
+    save_path: str = "results/tables/risk_threshold_summary.csv"
 ) -> pd.DataFrame:
     """
     추정된 risk threshold 정보를 csv로 저장하는 함수

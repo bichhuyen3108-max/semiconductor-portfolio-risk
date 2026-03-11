@@ -1,2 +1,0 @@
-﻿confidence_level,lookback_days,horizon_days,assume_mean_zero,sigma_1d,sigma_h,left_tail_prob,q_left,var_return,var_krw
-0.95,30,5,True,0.054412240454874264,0.12166946846516294,0.050000000000000044,-1.6448536269514722,-0.20012846649418103,-2001284.6649418103
