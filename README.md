@@ -168,7 +168,7 @@ volatility = result.conditional_volatility
 
 ### Forecast VaR vs Realized Return
 
-Forecast ** Value-at-Risk(VaR)** 와 실제 **horizon 수익률(Realized Return)** 을 비교하여 VaR 모델의 **예측 성능** 을 평가합니다.
+Forecast **Value-at-Risk(VaR)** 와 실제 **horizon 수익률(Realized Return)** 을 비교하여 VaR 모델의 **예측 성능** 을 평가합니다.
 
 <img src="results/figures/forecast_vs_realized.png" width="900">
 
@@ -176,7 +176,7 @@ Forecast ** Value-at-Risk(VaR)** 와 실제 **horizon 수익률(Realized Return)
 
 특히 **2020년 시장 충격 구간** 과 최근 일부 **고변동성 구간** 에서는 **violation이 집중적으로 나타나며** , 이는 시장 스트레스 상황에서 **tail risk가 확대될 수 있음을 보여줍니다.**
 
-또한 **violation이 무작위로 분산되기보다 특정 시기에 군집적으로 발생** 한다는 점은 금융 시장의 **Volatility Clustering 특성**과 일치합니다.
+또한 **Violation이 무작위로 분산되기보다 특정 시기에 군집적으로 발생** 한다는 점은 금융 시장의 **Volatility Clustering 특성**과 일치합니다.
 
 따라서 이 그래프는 **VaR 모델이 일반적인 시장 위험은 설명할 수 있지만, 극단적인 충격 구간에서는 실제 손실을 과소평가할 가능성이 있음 ** 을 보여줍니다.
 
