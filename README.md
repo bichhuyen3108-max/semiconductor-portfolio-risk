@@ -84,8 +84,8 @@ Historical VaR는 과거 수익률 분포를 기반으로 포트폴리오의 잠
 
 여기서
 
-- \(R_t\) : 포트폴리오 수익률  
-- \(Q_{\alpha}\) : 수익률 분포의 하위 분위수
+- `R_t` : 포트폴리오 수익률  
+- `Q_α` : 수익률 분포의 하위 분위수
 
 특징
     - 구현이 비교적 간단
@@ -155,66 +155,67 @@ volatility = result.conditional_volatility
 
 ### Portfolio Return vs VaR
 
-포트폴리오 수익률과 다양한 VaR 모델(Historical, Student-t, GARCH)을 비교하여 시장 리스크 변화를 분석합니다.
+포트폴리오 **수익률(Portfolio Return)** 과 다양한 **VaR 모델(Historical, Student-t, GARCH)** 을 비교하여 **시장 리스크 변화(Market Risk Dynamics)** 를 분석합니다.
 
 <img src="results/figures/return_vs_var_zoom_95.png" width="900">
 
-대부분의 기간에서 포트폴리오 수익률은 VaR 범위 내에서 움직이며, 이는 VaR 모델이 일반적인 시장 변동성을 비교적 잘 설명하고 있음을 보여줍니다.
+대부분의 기간에서 **포트폴리오 수익률** 은 **VaR 범위(Value-at-Risk Threshold)** 내에서 움직이며, 이는 **VaR 모델이 일반적인 시장 변동성(Market Volatility)** 을 비교적 잘 설명하고 있음을 보여줍니다.
 
-그러나 일부 구간에서는 실제 손실이 VaR 추정치를 크게 초과하는 Extreme Loss가 관찰됩니다.
-이러한 현상은 금융 시장에서 나타나는 Fat Tail 특성과 Tail Risk를 반영합니다.
+그러나 일부 구간에서는 실제 손실이 **VaR 추정치를 크게 초과하는 Extreme Loss(Tail Risk Event)** 가 관찰됩니다.
+이러한 현상은 금융 시장에서 나타나는 **Fat Tail 특성** 과 **Tail Risk** 를 반영합니다.
 
-또한 GARCH VaR는 변동성 변화에 더 민감하게 반응하여 시장 충격 이후 VaR 수준이 빠르게 확대되는 특징을 보입니다.
+또한 **GARCH 기반 VaR 모델** 은 **변동성 변화(Volatility Clustering)** 에 더 민감하게 반응하여 시장 충격 이후 **VaR 수준이 빠르게 확대되는 특징** 을 보입니다.
 
 ### Forecast VaR vs Realized Return
 
-Forecast VaR와 실제 horizon 수익률을 비교하여 VaR 모델의 예측 성능을 평가합니다.
+Forecast ** Value-at-Risk(VaR)** 와 실제 **horizon 수익률(Realized Return)** 을 비교하여 VaR 모델의 **예측 성능** 을 평가합니다.
 
 <img src="results/figures/forecast_vs_realized.png" width="900">
 
-대부분의 기간에서 실제 수익률은 Forecast VaR 범위 위에 위치하지만, 일부 구간에서는 실제 손실이 VaR 추정치를 크게 초과하는 Violation이 관찰됩니다.
+대부분의 기간에서 실제 **포트폴리오 수익률** 은 **Forecast VaR 범위 위에 위치** 하지만, 일부 구간에서는 실제 손실이 **VaR 추정치를 크게 초과하는 Violation** 이 관찰됩니다.
 
-특히 2020년 시장 충격 구간과 최근 일부 고변동성 구간에서는 violation이 집중적으로 나타나며, 이는 시장 스트레스 상황에서 tail risk가 확대될 수 있음을 보여줍니다.
+특히 **2020년 시장 충격 구간** 과 최근 일부 **고변동성 구간** 에서는 **violation이 집중적으로 나타나며** , 이는 시장 스트레스 상황에서 **tail risk가 확대될 수 있음을 보여줍니다.**
 
-또한 violation이 무작위로 분산되기보다 특정 시기에 군집적으로 발생한다는 점은 금융 시장의 volatility clustering 특성과 일치합니다.
+또한 **violation이 무작위로 분산되기보다 특정 시기에 군집적으로 발생** 한다는 점은 금융 시장의 **Volatility Clustering 특성**과 일치합니다.
 
-따라서 이 그래프는 VaR 모델이 일반적인 시장 위험은 설명할 수 있지만, 극단적인 충격 구간에서는 실제 손실을 과소평가할 가능성이 있음을 보여줍니다.
+따라서 이 그래프는 **VaR 모델이 일반적인 시장 위험은 설명할 수 있지만, 극단적인 충격 구간에서는 실제 손실을 과소평가할 가능성이 있음 ** 을 보여줍니다.
 
 
 ### VaR Model Comparison
 
-다양한 VaR 모델(Historical, Student-t, GARCH)의 리스크 추정 결과를 비교합니다.
+다양한 **VaR 모델(Historical, Student-t, GARCH)의 리스크 추정 결과** 를 비교합니다.
 
 <img src="results/figures/var_models_only_95.png" width="900">
 
-대부분의 기간에서 Historical VaR와 Student-t VaR는 비교적 안정적인 값을 보이며 유사한 추정 결과를 나타냅니다.  
-반면 GARCH VaR는 시장 변동성이 확대되는 구간에서 더 크게 하락하며 리스크 수준이 빠르게 증가하는 특징을 보입니다.  
+대부분의 기간에서 **Historical VaR** 와 **Student-t VaR** 는 비교적 안정적인 값을 보이며 **유사한 추정 결과** 를 나타냅니다.  
+반면 **GARCH VaR** 는 **시장 변동성이 확대되는 구간** 에서 더 크게 하락하며 **리스크 수준이 빠르게 증가** 하는 특징을 보입니다.  
 
-이는 GARCH 모델이 시간에 따라 변화하는 변동성을 반영하기 때문에 시장 충격 상황에서 보다 민감하게 리스크를 추정할 수 있음을 보여줍니다.
+이는 **GARCH 모델**이 **시간에 따라 변화하는 변동성(Time-varying Volatility)** 을 반영하기 때문에 **시장 충격 상황(Market Shock)** 에서 보다 민감하게 **리스크를 추정** 할 수 있음을 보여줍니다.
 
 ### GARCH Volatility Regime
 
-포트폴리오의 조건부 변동성을 GARCH 모델로 추정하고 시장 변동성을 Regime별로 구분합니다.
+포트폴리오의 **조건부 변동성(Conditional Volatility)** 을 **GARCH 모델** 로 추정하고 **시장 변동성을 Regime별**로 구분합니다.
 
 <img src="results/figures/garch_volatility_regime.png" width="900">
 
-분석 결과 시장 변동성은 일정하지 않고 Low / Moderate / High Regime 사이를 순환하는 특징을 보입니다.  
-특히 2020년 시장 충격 구간과 최근 일부 기간에서는 High Volatility Regime이 집중적으로 나타났습니다.  
+분석 결과 시장 변동성은 일정하지 않고 **Low / Moderate / High Regime** 사이를 **순환하는 특징** 을 보입니다.  
+특히 **2020년 시장 충격 구간**과 최근 일부 기간에서는 **High Volatility Regime**이 집중적으로 나타났습니다.  
 
-이는 금융 시장에서 변동성이 특정 시기에 군집적으로 나타나는 **Volatility Clustering** 현상을 보여주며,  
-시장 스트레스 상황에서 포트폴리오 리스크가 크게 확대될 수 있음을 의미합니다.
+이는 금융 시장에서 변동성이 특정 시기에 군집적으로 나타나는 **Volatility Clustering** 현상을 보여주며, **시장 스트레스 상황(Market Stress)** 에서 **포트폴리오 리스크** 가 크게 확대될 수 있음을 의미합니다.
 
 ### Forecast VaR with Risk Regime
 
-포트폴리오의 Forecast VaR 변화를 시장 변동성 Regime과 함께 시각화합니다.
+포트폴리오의 **Forecast VaR 변화** 를 **시장 변동성 Regime** 과 함께 시각화합니다.
 
 <img src="results/figures/var_regime_shading.png" width="900">
 
-이 그래프는 시간에 따라 변화하는 Forecast VaR를 보여주며, 시장 변동성 상태를 Low / Moderate / High Regime으로 구분하여 표시합니다.
-대부분의 기간에서 VaR는 위험 허용 기준선(Risk Budget Line) 위에 위치하지만, 일부 시장 충격 구간에서는 VaR가 크게 하락하며 포트폴리오의 잠재적 손실 위험이 확대됩니다.
+이 그래프는 시간에 따라 변화하는 **Forecast VaR** 를 보여주며, **시장 변동성 상태를 Low / Moderate / High Regime** 으로 구분하여 표시합니다.
 
-특히 High Volatility Regime에서는 VaR가 급격히 증가하는 경향을 보이며, 이는 시장 스트레스 상황에서 포트폴리오 리스크가 빠르게 확대될 수 있음을 시사합니다.
-따라서 이 그래프는 미래 포트폴리오 리스크가 현재 어떤 위험 구간에 위치하는지를 직관적으로 파악하는 데 활용될 수 있습니다.
+대부분의 기간에서 **VaR** 는 **위험 허용 기준선(Risk Budget Line)** 위에 위치하지만, 일부 시장 충격 구간에서는 **VaR가 크게 하락** 하며 **포트폴리오의 잠재적 손실 위험(Potential Loss Risk)** 이 확대됩니다.
+
+특히 **High Volatility Regime** 에서는 **VaR가 급격히 증가** 하는 경향을 보이며, 이는 **시장 스트레스 상황** 에서 **포트폴리오 리스크** 가 빠르게 확대될 수 있음을 시사합니다.
+
+따라서 이 그래프는 **미래 포트폴리오 리스크**가 현재 **어떤 위험 구간(Risk Regime)**에 위치하는지를 **직관적으로 파악** 하는 데 활용될 수 있습니다.
 
 
 ## 📉 VaR Backtesting (Kupiec Test)
