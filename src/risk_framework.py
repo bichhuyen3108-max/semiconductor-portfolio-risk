@@ -251,7 +251,7 @@ def plot_var_with_regime_shading(
     moderate_ratio: float = 0.6,
     date_col: str = "Date",
     var_col: str = "VaR_return_h",
-    save_path: Optional[str] = "results/figures/post4_var_regime_shading.png",
+    save_path: Optional[str] = "results/figures/var_regime_shading.png",
     show: bool = True,
 ) -> None:
     """
@@ -301,7 +301,7 @@ def plot_forecast_var_vs_realized_return(
     date_col: str = "Date",
     var_col: str = "VaR_return_h",
     realized_col: str = "realized_return_h",
-    save_path: Optional[str] = "results/figures/post4_forecast_vs_realized.png",
+    save_path: Optional[str] = "results/figures/forecast_vs_realized.png",
     show: bool = True,
 ) -> pd.DataFrame:
     """
@@ -672,7 +672,7 @@ def run_post4(
         moderate_ratio=moderate_ratio,
         date_col=date_col,
         var_col="VaR_return_h",
-        save_path=os.path.join(save_figures_dir, "post4_var_regime_shading.png"),
+        save_path=os.path.join(save_figures_dir, "var_regime_shading.png"),
         show=show_plot,
     )
 
@@ -683,7 +683,7 @@ def run_post4(
         date_col=date_col,
         var_col="VaR_return_h",
         realized_col="realized_return_h",
-        save_path=os.path.join(save_figures_dir, "post4_forecast_vs_realized.png"),
+        save_path=os.path.join(save_figures_dir, "forecast_vs_realized.png"),
         show=show_plot,
     )
 
@@ -704,7 +704,7 @@ def run_post4(
                                     index=False, encoding="utf-8-sig")
     var_series.to_csv(os.path.join(save_tables_dir, "post4_var_forecast_series.csv"),
                       index=False, encoding="utf-8-sig")
-    merged_df.to_csv(os.path.join(save_tables_dir, "post4_forecast_vs_realized_merged.csv"),
+    merged_df.to_csv(os.path.join(save_tables_dir, "forecast_vs_realized_merged.csv"),
                      index=False, encoding="utf-8-sig")
 
     print("\n===== POST 4 완료 =====")
